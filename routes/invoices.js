@@ -99,16 +99,18 @@ router.delete("/:id", async function (req, res, next) {
 router.get("/companies/:code", async function (req, res, next) {
   try {
     const code = req.params.code;
-    const result = await db.query(
-      `SELECT c.name, c.code, c.description, i.id, i.amt, i.paid, i.add_date, i.paid_date
-      FROM companies AS c INNER JOIN invoices AS i ON (c.code = i.comp_code)
-      WHERE code = $1`,
-      [code]
-    );
-    if (result.rows.length === 0) {
+    const company = await db.query(`SELECT * FROM companies WHERE code = $1`, [
+      code,
+    ]);
+    if (company.rows.length === 0) {
       next();
     }
-    return res.json(result.rows);
+    const invArray = await db.query(
+      `SELECT * FROM invoices WHERE comp_code = $1`,
+      [code]
+    );
+    company.rows[0]["invoices"] = invArray.rows;
+    return res.json({ company: company.rows[0] });
   } catch (err) {
     next(err);
   }
